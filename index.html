@@ -55,9 +55,9 @@
 
         // Inicializando o Firebase
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app); 
+        const db = getFirestore(app);
 
-        
+
         function pegaNumero() {
             let valorBruto = parseInt(document.getElementById("valorBruto").value);
             let somaGasto = 20;  // A soma do gasto pode ser definida de forma fixa
@@ -70,6 +70,7 @@
             event.preventDefault();  // Impede o envio do formulário e o recarregamento da página
 
             const { valorBruto, dias } = pegaNumero();
+            const dataAtual = new Date();
             let gastarPorDia = valorBruto / dias;
             document.getElementById("gastarPorDia").value = gastarPorDia;
 
@@ -86,7 +87,8 @@
                     valorBruto: valorBruto,
                     somaGasto: 20,
                     dias: dias,
-                    gastarPorDia: gastarPorDia
+                    gastarPorDia: gastarPorDia,
+                    dataCampo: dataAtual
                 });
                 alert('Dados salvos com sucesso! Documento ID: ' + docRef.id);
             } catch (error) {
@@ -95,7 +97,71 @@
             }
         }
 
-        // Função para ler os dados do Firestore
+        //CORRIGIR - FUNÇÃO NÃO ESTÁ RETORNANDO OS VALORES -SUBSITUIR PELA FUNÇÃO "GETGASTOS"
+        async function pegaDado(event) {
+            event.preventDefault();  // Impede o envio do formulário e o recarregamento da página
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "gastos"));
+                let dadosColetados = [];
+                querySnapshot.forEach((doc) => {
+                    const dados = doc.data();
+                    let valorBrutoDb = dados.valorBruto;
+                    let somaGastoDb = dados.somaGasto;
+                    let diasDb = dados.dias;
+                    let gastarPorDiaDb = dados.gastarPorDia;
+                
+                    dadosColetados.push({
+                        valorBrutoDb: dados.valorBruto,
+                        somaGastoDb: dados.somaGasto,
+                        diasDb: dados.dias,
+                        gastarPorDiaDb : dados.gastarPorDia
+                    })
+                    return dadosColetados;
+
+                });
+            } catch (error) {
+                console.error("Erro ao ler documentos: ", error);
+            }
+        }
+
+        //CORRIGIR ESSA FUNÇÃO ; IMPRIME MAIS DE UMA VEZ A DIV (IMPRIME A QUANTIDADE DE VEZES DO DADO) RESOLVER A FUNÇÃO "PEGADADO()" QUE NÃO RETORNA O NUMERO
+        async function soma() {
+            const { valorBrutoDb, somaGastoDb, diasDb, gastarPorDiaDb } = pegaDado();
+            let somaTotal = 0;
+            let um = valorBrutoDb;
+            const querySnapshot = await getDocs(collection(db, "gastos"));
+            querySnapshot.forEach(doc => {
+                const dados = doc.data();
+
+                // Se o campo "valorBrutoDb" existir e for um número, soma o valor
+                if (typeof dados.valorBruto === "number") {
+                    somaTotal += dados.valorBruto;
+                }
+            });
+
+            const div = document.createElement('div');
+            div.innerHTML = ` 
+            <div class="container-sm">
+            <div class="mb-3">
+                <label for="valorBruto" class="form-label">Valor Bruto</label>
+                <input type="text" class="form-control" id="somaTotalNovo" aria-describedby="valorBrutoHelp">
+            </div> 
+            <div class="mb-3">
+                <label for="valorBruto" class="form-label">Valor Bruto</label>
+                <input type="text" class="form-control" id="passouAqui" aria-describedby="valorBrutoHelp">
+            </div> 
+            </div> 
+            `;
+
+            document.body.appendChild(div); // Adiciona a div na págin
+            document.getElementById("somaTotalNovo").value = somaTotal;
+            //document.getElementById("passouAqui").value = um;
+
+        }
+
+
+        // Função para ler os dados do Firestore !!!!!!!!
         async function lerDados(event) {
             event.preventDefault();  // Impede o envio do formulário e o recarregamento da página
 
@@ -107,18 +173,31 @@
                     console.log('Soma Gasto:', dados.somaGasto);
                     console.log('Dias:', dados.dias);
                     console.log('Gastar por Dia:', dados.gastarPorDia);
+                    // window.alert(`Data: ${dados.dataCampo.toDate().toLocaleDateString()}`);
 
+                    document.getElementById("somaGasto").value = dados.somaGasto;
 
+                    document.getElementById("valorBruto").value = dados.valorBruto;
+                    document.getElementById("gastarPorDia").value = dados.gastarPorDia;
+                    if (dados.gastarPorDia <= 9) {
 
-                    const div = document.createElement("div");
-                    div.innerHTML = `
-                    ------------------------------------------------
-                        <p>Valor Bruto: ${dados.valorBruto}</p>
-                        <p>Soma Gasto: ${dados.somaGasto}</p>
-                        <p>Dias: ${dados.dias}</p>
-                        <p>Gastar por Dia: ${dados.gastarPorDia}</p>
-                    `;
-                    document.body.appendChild(div); // Adiciona a div na página
+                        document.getElementById("gastarPorDia").style.backgroundColor = "red";
+                        document.getElementById("gastarPorDia").style.color = "white";
+                    } else {
+                        document.getElementById("gastarPorDia").style.backgroundColor = "green";
+                    }
+
+                    soma();
+
+                    // const div = document.createElement("div");
+                    // div.innerHTML = `
+                    // ------------------------------------------------
+                    //     <p>Valor Bruto: ${dados.valorBruto}</p>
+                    //     <p>Soma Gasto: ${dados.somaGasto}</p>
+                    //     <p>Dias: ${dados.dias}</p>
+                    //     <p>Gastar por Dia: ${dados.gastarPorDia}</p>
+                    // `;
+                    // document.body.appendChild(div); // Adiciona a div na página
                 });
             } catch (error) {
                 console.error("Erro ao ler documentos: ", error);
