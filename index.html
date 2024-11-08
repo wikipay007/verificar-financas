@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+    <title>Dash-conta</title>
+</head>
+
+<body>
+    <div class="container-sm">
+        <form id="form">
+            <div class="mb-3">
+                <label for="valorBruto" class="form-label">Valor Bruto</label>
+                <input type="text" class="form-control" id="valorBruto" aria-describedby="valorBrutoHelp">
+            </div>
+            <div class="mb-3">
+                <label for="somaGasto" class="form-label">Soma gasto</label>
+                <input type="text" class="form-control" id="somaGasto" readonly disabled>
+            </div>
+            <div class="mb-3">
+                <label for="dias" class="form-label">Dias até o próximo mês</label>
+                <input type="text" class="form-control" id="dias">
+            </div>
+            <div class="mb-3">
+                <label for="gastarPorDia" class="form-label">Quanto você pode gastar por dia</label>
+                <input type="text" class="form-control" id="gastarPorDia" disabled>
+            </div>
+
+            <button id="calcularBtn" type="button" class="btn btn-primary">Calcular</button>
+            <button id="lerDadosBtn" type="button" class="btn btn-primary">Obter dados</button>
+        </form>
+    </div>
+
+    <script type="module">
+        // Importando funções do Firebase SDK v9+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
+
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLn4aXo9UdKLOh5aw-_0Z6ypardHYpeNo",
+            authDomain: "planejamentoconta-91d86.firebaseapp.com",
+            projectId: "planejamentoconta-91d86",
+            storageBucket: "planejamentoconta-91d86.firebasestorage.app",
+            messagingSenderId: "534211555863",
+            appId: "1:534211555863:web:23ebd02136f7c70d8f6252",
+            measurementId: "G-1TQCVHFHPM"
+        };
+
+        // Inicializando o Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app); 
+
+        
+        function pegaNumero() {
+            let valorBruto = parseInt(document.getElementById("valorBruto").value);
+            let somaGasto = 20;  // A soma do gasto pode ser definida de forma fixa
+            let dias = parseInt(document.getElementById("dias").value);
+
+            return { valorBruto, somaGasto, dias };
+        }
+
+        async function mostrarResult(event) {
+            event.preventDefault();  // Impede o envio do formulário e o recarregamento da página
+
+            const { valorBruto, dias } = pegaNumero();
+            let gastarPorDia = valorBruto / dias;
+            document.getElementById("gastarPorDia").value = gastarPorDia;
+
+            if (gastarPorDia <= 9) {
+                document.getElementById("gastarPorDia").style.backgroundColor = "red";
+                document.getElementById("gastarPorDia").style.color = "white";
+            } else {
+                document.getElementById("gastarPorDia").style.backgroundColor = "green";
+            }
+
+            try {
+                // Adicionando os dados no Firestore
+                const docRef = await addDoc(collection(db, "gastos"), {
+                    valorBruto: valorBruto,
+                    somaGasto: 20,
+                    dias: dias,
+                    gastarPorDia: gastarPorDia
+                });
+                alert('Dados salvos com sucesso! Documento ID: ' + docRef.id);
+            } catch (error) {
+                console.error("Erro ao adicionar documento: ", error);
+                alert('Erro ao salvar dados!');
+            }
+        }
+
+        // Função para ler os dados do Firestore
+        async function lerDados(event) {
+            event.preventDefault();  // Impede o envio do formulário e o recarregamento da página
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "gastos"));
+                querySnapshot.forEach((doc) => {
+                    const dados = doc.data();
+                    console.log('Valor Bruto:', dados.valorBruto);
+                    console.log('Soma Gasto:', dados.somaGasto);
+                    console.log('Dias:', dados.dias);
+                    console.log('Gastar por Dia:', dados.gastarPorDia);
+
+
+
+                    const div = document.createElement("div");
+                    div.innerHTML = `
+                        <p>Valor Bruto: ${dados.valorBruto}</p>
+                        <p>Soma Gasto: ${dados.somaGasto}</p>
+                        <p>Dias: ${dados.dias}</p>
+                        <p>Gastar por Dia: ${dados.gastarPorDia}</p>
+                    `;
+                    document.body.appendChild(div); // Adiciona a div na página
+                });
+            } catch (error) {
+                console.error("Erro ao ler documentos: ", error);
+            }
+        }
+
+        // Atribuindo os eventos aos botões
+        document.getElementById("calcularBtn").addEventListener("click", mostrarResult);
+        document.getElementById("lerDadosBtn").addEventListener("click", lerDados);
+    </script>
+
+</body>
+
+</html>
